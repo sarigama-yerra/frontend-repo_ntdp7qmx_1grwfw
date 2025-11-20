@@ -1,71 +1,79 @@
+import { useEffect, useState } from 'react'
+import Hero from './components/Hero'
+import Navbar from './components/Navbar'
+import ProductCard from './components/ProductCard'
+
 function App() {
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+  const [hero, setHero] = useState({ title: 'Pride Fashion', subtitle: 'Bold. Modern. You.', cta: 'Shop Now', image: '' })
+  const [trending, setTrending] = useState([])
+  const [cart, setCart] = useState([])
+
+  useEffect(() => {
+    fetch(`${baseUrl}/api/home`).then(r => r.json()).then(data => {
+      setHero(data.hero)
+      setTrending(data.trending || [])
+    }).catch(() => {})
+  }, [])
+
+  const addToCart = (item) => {
+    setCart(prev => {
+      const exists = prev.find(i => i._id === item._id)
+      if (exists) {
+        return prev.map(i => i._id === item._id ? { ...i, qty: i.qty + 1 } : i)
+      }
+      return [...prev, { ...item, qty: 1 }]
+    })
+  }
+
+  const affiliateClick = async (item) => {
+    try {
+      const res = await fetch(`${baseUrl}/api/affiliate/click/${item._id}`, { method: 'POST' })
+      const data = await res.json()
+      if (data.redirect) {
+        window.open(data.redirect, '_blank')
+      }
+    } catch (e) {}
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]"></div>
+    <div className="min-h-screen bg-[#fff]">
+      <Navbar cartCount={cart.reduce((a,b)=>a+b.qty,0)} onLoginClick={() => alert('Login page coming soon')} />
+      <Hero hero={hero} onShop={() => window.location.hash = '#trending'} />
 
-      <div className="relative min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-2xl w-full">
-          {/* Header with Flames icon */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center mb-6">
-              <img
-                src="/flame-icon.svg"
-                alt="Flames"
-                className="w-24 h-24 drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
-              />
-            </div>
-
-            <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-              Flames Blue
-            </h1>
-
-            <p className="text-xl text-blue-200 mb-6">
-              Build applications through conversation
-            </p>
+      <section id="trending" className="py-12 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="flex items-end justify-between mb-6">
+            <h2 className="text-2xl font-bold">Trending</h2>
+            <a className="text-sm text-[#e91e63]" href="#collections">View all</a>
           </div>
-
-          {/* Instructions */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-8 shadow-xl mb-6">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                1
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Describe your idea</h3>
-                <p className="text-blue-200/80 text-sm">Use the chat panel on the left to tell the AI what you want to build</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                2
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Watch it build</h3>
-                <p className="text-blue-200/80 text-sm">Your app will appear in this preview as the AI generates the code</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Refine and iterate</h3>
-                <p className="text-blue-200/80 text-sm">Continue the conversation to add features and make changes</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center">
-            <p className="text-sm text-blue-300/60">
-              No coding required • Just describe what you want
-            </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {trending.map(item => (
+              <ProductCard key={item._id} item={item} onAddToCart={addToCart} onAffiliate={affiliateClick} />
+            ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      <section id="about" className="py-16 bg-[#111] text-white">
+        <div className="container mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <h3 className="text-3xl font-extrabold">About Pride Fashion</h3>
+            <p className="mt-4 text-white/80">We blend modern silhouettes with bold color to celebrate individuality. Built with love in pink and black.</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-6 ring-1 ring-white/10">
+            <ul className="space-y-2 text-white/80 list-disc pl-5">
+              <li>Owned and affiliate products</li>
+              <li>Secure checkout</li>
+              <li>Wishlist and user accounts</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <footer id="contact" className="py-10 text-center bg-white">
+        <p className="text-gray-600">© {new Date().getFullYear()} Pride Fashion</p>
+      </footer>
     </div>
   )
 }
